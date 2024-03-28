@@ -40,27 +40,27 @@ function MilvusStore(options) {
             }
             doSave();
             /*
-                  ;['zone', 'base', 'name'].forEach((n: string) => {
-                    if ('' != fieldOpts[n].name && null != canon[n] && '' != canon[n]) {
-                      body[fieldOpts[n].name] = canon[n]
-                    }
-                  })
-            
-                  const req = {
-                    index,
-                    body,
-                  }
-            
-                  client
-                    .index(req)
-                    .then((res: any) => {
-                      const body = res.body
-                      ent.data$(body._source)
-                      ent.id = body._id
-                      reply(ent)
-                    })
-                    .catch((err: any) => reply(err))
-                    */
+               ;['zone', 'base', 'name'].forEach((n: string) => {
+               if ('' != fieldOpts[n].name && null != canon[n] && '' != canon[n]) {
+               body[fieldOpts[n].name] = canon[n]
+               }
+               })
+    
+               const req = {
+               index,
+               body,
+               }
+    
+               client
+               .index(req)
+               .then((res: any) => {
+               const body = res.body
+               ent.data$(body._source)
+               ent.id = body._id
+               reply(ent)
+               })
+               .catch((err: any) => reply(err))
+             */
         },
         load: function (msg, reply) {
             // const seneca = this
@@ -71,32 +71,32 @@ function MilvusStore(options) {
             let q = msg.q || {};
             reply({});
             /*
-                  if (null != q.id) {
-                    client
-                      .get({
-                        index,
-                        id: q.id,
-                      })
-                      .then((res: any) => {
-                        const body = res.body
-                        ent.data$(body._source)
-                        ent.id = body._id
-                        reply(ent)
-                      })
-                      .catch((err: any) => {
-                        // Not found
-                        if (err.meta && 404 === err.meta.statusCode) {
-                          reply(null)
-                        }
-            
-                        reply(err)
-                      })
-                      
-                      
-                  } else {
-                    reply()
-                  }
-                  */
+               if (null != q.id) {
+               client
+               .get({
+               index,
+               id: q.id,
+               })
+               .then((res: any) => {
+               const body = res.body
+               ent.data$(body._source)
+               ent.id = body._id
+               reply(ent)
+               })
+               .catch((err: any) => {
+            // Not found
+            if (err.meta && 404 === err.meta.statusCode) {
+            reply(null)
+            }
+    
+            reply(err)
+            })
+    
+    
+            } else {
+            reply()
+            }
+             */
         },
         list: function (msg, reply) {
             // const seneca = this
@@ -124,22 +124,22 @@ function MilvusStore(options) {
             }
             doList();
             /*
-                  client
-                    .search(query)
-                    .then((res: any) => {
-                      const hits = res.body.hits
-                      const list = hits.hits.map((entry: any) => {
-                        let item = ent.make$().data$(entry._source)
-                        item.id = entry._id
-                        item.custom$ = { score: entry._score }
-                        return item
-                      })
-                      reply(list)
-                    })
-                    .catch((err: any) => {
-                      reply(err)
-                    })
-                    */
+               client
+               .search(query)
+               .then((res: any) => {
+               const hits = res.body.hits
+               const list = hits.hits.map((entry: any) => {
+               let item = ent.make$().data$(entry._source)
+               item.id = entry._id
+               item.custom$ = { score: entry._score }
+               return item
+               })
+               reply(list)
+               })
+               .catch((err: any) => {
+               reply(err)
+               })
+             */
         },
         // NOTE: all$:true is REQUIRED for deleteByQuery
         remove: function (msg, reply) {
@@ -159,44 +159,44 @@ function MilvusStore(options) {
             // console.dir(query, { depth: null })
             reply(null);
             /*
-            if (null != id) {
-              client
-                .delete({
-                  index,
-                  id,
-                  // refresh: true,
-                })
-                .then((_res: any) => {
-                  reply(null)
-                })
-                .catch((err: any) => {
-                  // Not found
-                  if (err.meta && 404 === err.meta.statusCode) {
-                    return reply(null)
-                  }
-      
-                  reply(err)
-                })
-            } else if (null != query && true === q.all$) {
-              client
-                .deleteByQuery({
-                  index,
-                  body: {
-                    query,
-                  },
-                  // refresh: true,
-                })
-                .then((_res: any) => {
-                  reply(null)
-                })
-                .catch((err: any) => {
-                  // console.log('REM ERR', err)
-                  reply(err)
-                })
-            } else {
+               if (null != id) {
+               client
+               .delete({
+               index,
+               id,
+              // refresh: true,
+              })
+              .then((_res: any) => {
               reply(null)
-            }
-            */
+              })
+              .catch((err: any) => {
+              // Not found
+              if (err.meta && 404 === err.meta.statusCode) {
+              return reply(null)
+              }
+      
+              reply(err)
+              })
+              } else if (null != query && true === q.all$) {
+              client
+              .deleteByQuery({
+              index,
+              body: {
+              query,
+              },
+              // refresh: true,
+              })
+              .then((_res: any) => {
+              reply(null)
+              })
+              .catch((err: any) => {
+              // console.log('REM ERR', err)
+              reply(err)
+              })
+              } else {
+              reply(null)
+              }
+             */
         },
         close: function (_msg, reply) {
             this.log.debug('close', desc);
@@ -246,14 +246,14 @@ function buildQuery(spec) {
     let outputFields = [...options.milvus.schema.map((field) => field.name), ...fields];
     const parts = [];
     /*
-      for (let k in q) {
-        if (!excludeKeys[k] && !k.match(/\$/)) {
-          parts.push({
-            match: { [k]: q[k] },
-          })
-        }
-      }
-    */
+       for (let k in q) {
+       if (!excludeKeys[k] && !k.match(/\$/)) {
+       parts.push({
+       match: { [k]: q[k] },
+       })
+       }
+       }
+     */
     const vector$ = msg.vector$ || ((_a = q.directive$) === null || _a === void 0 ? void 0 : _a.vector$);
     if (vector$) {
         query['topk'] = null == vector$.k ? 11 : vector$.k;

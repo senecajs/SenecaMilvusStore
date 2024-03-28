@@ -60,8 +60,9 @@ async function run() {
     // x:2
     directive$:{vector$: { k: 3 }},
     vector:[0.1,0.1,0.2,0.3,0.4,0.5,0.6,0.7],
+    fields$: ['x', 'text'],
   })
-  console.log('list1', list1.length)
+  console.log('list1', list1.length, list1)
 
 
   // console.log(await seneca.entity('bar/qaz').list$())
