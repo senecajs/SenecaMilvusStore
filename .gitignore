@@ -26,3 +26,5 @@ test/coverage.html
 
 .env.local
 coverage/
+
+*.swp
