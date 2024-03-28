@@ -48,11 +48,14 @@ function MilvusStore(this: any, options: Options) {
     save: function (this: any, msg: any, reply: any) {
       // const seneca = this
       const ent = msg.ent
+      const q = msg.q || {}
 
       const collection_name = makeCollectionName(ent.canon$({ string: true }))
 
       const body = ent.data$(false)
 
+      const id = q.id || ent.id
+      
       // console.log('IN SAVE: ', collection, body)
 
       const fieldOpts: any = options.field
@@ -63,47 +66,42 @@ function MilvusStore(this: any, options: Options) {
           collection: options.milvus.collection,
         })
 
-        client.insert({
-          collection_name,
-          data: [ body ],
-        })
-          .then( (res: any) => {
-            let id = res.IDs.int_id.data[0]
-            body.id = id
-            reply(null, ent.data$(body))
+	if(null == id) {
+          client.insert({
+            collection_name,
+            data: [ body ],
           })
-          .catch( (err: any) => {
-            reply(err, null)
+            .then( (res: any) => {
+              let id = res.IDs.int_id.data[0]
+              body.id = id
+              reply(null, ent.data$(body))
+            })
+            .catch( (err: any) => {
+              reply(err, null)
+            })
+        } else {
+          // console.log("IN UPSERT", body)
+          reply(new Error("UPSERT NOT SUPPORTED"), null)
+          /*
+          client.upsert({
+            collection_name,
+            fields_data: [ body ],
           })
+            .then( (res: any) => {
+              console.log(res)
+              reply(null, ent.data$(body))
+            })
+            .catch( (err: any) => {
+              reply(err, null)
+            })
+          */
+
+        }
 
       }
 
       doSave()
-
-
-
-        /*
-           ;['zone', 'base', 'name'].forEach((n: string) => {
-           if ('' != fieldOpts[n].name && null != canon[n] && '' != canon[n]) {
-           body[fieldOpts[n].name] = canon[n]
-           }
-           })
-
-           const req = {
-           index,
-           body,
-           }
-
-           client
-           .index(req)
-           .then((res: any) => {
-           const body = res.body
-           ent.data$(body._source)
-           ent.id = body._id
-           reply(ent)
-           })
-           .catch((err: any) => reply(err))
-         */
+      
     },
 
     load: function (this: any, msg: any, reply: any) {
@@ -129,7 +127,7 @@ function MilvusStore(this: any, options: Options) {
           output_fields: query.output_fields,
         })
         
-        checkError(res)
+        checkError(res, reply)
         
         if( null == res.data[0]) {
           return reply(null)
@@ -143,7 +141,7 @@ function MilvusStore(this: any, options: Options) {
 
     list: function (msg: any, reply: any) {
       // const seneca = this
-      let vector
+      let vector: any
       const q = msg.q || {}
       const ent = msg.ent
 
@@ -154,15 +152,11 @@ function MilvusStore(this: any, options: Options) {
 
       vector = q.vector
 
-      query.vector = vector
-      // console.log('LISTQ')
-      // console.dir(query, { depth: null })
-
       if (null == query) {
         return reply([])
       }
 
-      console.log('LIST QUERY: ', query)
+      
 
       async function doList() {
         // Load collection in memory
@@ -171,11 +165,46 @@ function MilvusStore(this: any, options: Options) {
           collection: options.milvus.collection,
         })
         
-        let res: any = await client.search(query)
-        checkError(res)
+        if(vector) {
+          query.vector = vector
+          
+          let res: any = await client.search(query)
         
-        let list = res.results.map((item: any) => ent.data$(item))
-        reply(null, list)
+          console.log('LIST SEARCH: ', query, res)
+          checkError(res, reply)
+        
+          let list = res.results.map((item: any) => ent.data$(item))
+          reply(null, list)
+        } else {
+          
+          let cq = seneca.util.clean(q)
+          
+          let expr = Object.keys(cq).map(c => {
+            return build_cmps(cq[c], c).cmps.map(cmp => {
+              return cmp.k + cmp.cmpop + JSON.stringify(cmp.v)
+            }).join('and')
+          }).join('or')
+          
+          let filter_query: any = {
+            collection_name, 
+            limit: 100,
+            output_fields: query.output_fields,
+          }
+          
+          console.log('EXPR: ', filter_query, [ expr, cq ])
+          
+          let res = await client.query(filter_query)// .then(console.log)
+          // .catch(console.log)
+          checkError(res, reply)
+          reply(res.data)
+          // let res: any = {}
+          // reply(res)
+          
+          console.log("IN LIST QUERY: ", filter_query, q, res)
+          
+          // reply(res.data)
+        }
+        
       }
 
       doList()
@@ -200,7 +229,6 @@ function MilvusStore(this: any, options: Options) {
       }
 
       // console.log('REMOVE', id)
-      // console.dir(query, { depth: null })
 
       reply(null)
 
@@ -265,7 +293,8 @@ function MilvusStore(this: any, options: Options) {
   seneca.prepare(async function (this: any) {
     const address = options.milvus.address
     const token = options.milvus.token
-
+    
+    console.log("IN PREPARE: ", address, token)
     client = new MilvusClient({ address, token })
     
     
@@ -276,6 +305,13 @@ function MilvusStore(this: any, options: Options) {
       let res
       
       let collection_name = makeCollectionName(canon)
+      
+      let collection_exists = await client.hasCollection({ collection_name })
+      
+      checkError(collection_exists)
+      if(collection_exists.value) {
+        continue
+      }
       
       res = await client.createCollection({
         collection_name,
@@ -319,7 +355,9 @@ function makeCollectionName(canon: String) {
   base = '-' == base ? '' : base
   name = '-' == name ? '' : name
   
-  return [ zone, base, name ].filter((v: String) => v!='').join('_')
+  let str = [ zone, base, name ].filter((v: String)=>null!=v&&''!=v).join('_')
+  
+  return str
 }
 
 function buildQuery(spec: { options: any; msg: any }) {
@@ -369,11 +407,50 @@ async function loadCollection(client: any, config: any) {
 
 }
 
-function checkError(res: any) {
+function build_cmps(qv: any, kname: String) {
+      // console.log('QV: ', typeof qv, qv)
+
+      if ('object' != typeof qv) {
+        //  && !Array.isArray(qv)) {
+        return { cmps: [{ c: 'eq$', cmpop: '==', k: kname, v: qv }] }
+      }
+
+      let cmpops: any = {
+          gt$: { cmpop: '>' },
+          gte$: { cmpop: '>=' },
+          lt$: { cmpop: '<' },
+          lte$: { cmpop: '<=' },
+          ne$: { cmpop: '!=' },
+          eq$: { cmpop: '==' },
+        },
+        cmps = []
+
+      for (let k in qv) {
+        let cmp = cmpops[k]
+        if (cmp) {
+          cmp = { ...cmpops[k] }
+          cmp.k = kname
+          cmp.v = qv[k]
+          cmp.c = k
+          cmps.push(cmp)
+        } else if (k.endsWith('$')) {
+          throw new Error('Invalid Comparison ' + k)
+        }
+      }
+
+      return { cmps }
+    }
+    
+function checkError(res: any, reply: any = null) {
   if(res.status ? 
     (null != res.status.code && 0 != res.status.code) : 
     (null != res.code && 0 != res.code)) {
-    throw new Error(JSON.stringify(res))
+    
+    if(null == reply) { 
+      throw new Error(JSON.stringify(res))
+    } else {
+      reply(new Error(JSON.stringify(res)))
+    }
   }
 }
 
@@ -400,7 +477,7 @@ const defaults: Options = {
   },
 
   milvus: Open({
-    address: 'HOST:PORT',
+    address: '0.0.0.0:19530', // HOST:PORT
     token: 'TOKEN',
 
     schema: [

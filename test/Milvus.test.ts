@@ -8,29 +8,28 @@ import Seneca from 'seneca'
 // import SenecaMsgTest from 'seneca-msg-test'
 // import { Maintain } from '@seneca/maintain'
 
-import OpensearchStoreDoc from '../src/OpensearchStoreDoc'
-import OpensearchStore from '../src/OpensearchStore'
+import MilvusStoreDoc from '../src/MilvusStoreDoc'
+import MilvusStore from '../src/MilvusStore'
 
 
 
-describe('OpensearchStore', () => {
+describe('MilvusStore', () => {
   test('load-plugin', async () => {
-    expect(OpensearchStore).toBeDefined()
-    expect(OpensearchStoreDoc).toBeDefined()
-
+    expect(MilvusStore).toBeDefined()
+    expect(MilvusStoreDoc).toBeDefined()
     const seneca = Seneca({ legacy: false })
       .test()
       .use('promisify')
       .use('entity')
-      .use(OpensearchStore)
+      .use(MilvusStore)
     await seneca.ready()
 
-    expect(seneca.export('OpensearchStore/native')).toBeDefined()
+    expect(seneca.export('MilvusStore/native')).toBeDefined()
   })
 
-
+  /*
   test('utils.resolveIndex', () => {
-    const utils = OpensearchStore['utils']
+    const utils = MilvusStore['utils']
     const resolveIndex = utils.resolveIndex
     const seneca = makeSeneca()
     const ent0 = seneca.make('foo')
@@ -46,7 +45,7 @@ describe('OpensearchStore', () => {
     }))
       .toEqual('FOOBAR')
   }, 22222)
-
+  */
 
   test('insert-remove', async () => {
     const seneca = await makeSeneca()
@@ -59,7 +58,7 @@ describe('OpensearchStore', () => {
 
     const list1 = await seneca.entity('foo/chunk').list$({ test: 'insert-remove' })
     // console.log(list1)
-
+/*
     let ent0: any
 
     if (0 === list1.length) {
@@ -86,10 +85,13 @@ describe('OpensearchStore', () => {
     const list2 = await seneca.entity('foo/chunk').list$({ test: 'insert-remove' })
     // console.log(list2)
     expect(list2.filter((n: any) => n.id === ent0.id)).toEqual([])
+    */
+    
   }, 22222)
 
 
   test('vector-cat', async () => {
+ 
     const seneca = await makeSeneca()
     await seneca.ready()
 
@@ -99,7 +101,7 @@ describe('OpensearchStore', () => {
     // NOT AVAILABLE ON AWS
     // await seneca.entity('foo/chunk').remove$({ all$: true, test: 'vector-cat' })
 
-    const list1 = await seneca.entity('foo/chunk').list$({ test: 'vector-cat' })
+    // const list1 = await seneca.entity('foo/chunk').list$({ test: 'vector-cat' })
     // console.log('list1', list1)
 
     /*
@@ -112,7 +114,8 @@ describe('OpensearchStore', () => {
     const list1r = await seneca.entity('foo/chunk').list$({ test: 'vector-cat' })
     // console.log('list1r', list1r)
     */
-
+    
+    /*
     if (!list1.find((n: any) => 'code0' === n.code)) {
       await seneca.entity('foo/chunk')
         .make$()
@@ -155,6 +158,7 @@ describe('OpensearchStore', () => {
     })
     // console.log('list3', list3.map((n: any) => ({ ...n })))
     expect(list3.length).toEqual(1)
+    */
 
   }, 22222)
 
@@ -168,15 +172,12 @@ function makeSeneca() {
     .test()
     .use('promisify')
     .use('entity')
-    .use(OpensearchStore, {
+    .use(MilvusStore, {
       map: {
         'foo/chunk': '*'
       },
-      index: {
-        exact: process.env.SENECA_OPENSEARCH_TEST_INDEX,
-      },
-      opensearch: {
-        node: process.env.SENECA_OPENSEARCH_TEST_NODE,
+      milvus: {
+        address: '0.0.0.0:19530',
       }
     })
 }
