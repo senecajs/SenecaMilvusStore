@@ -26,7 +26,6 @@ type Options = {
             size: number;
         };
     };
-    aws: any;
     milvus: any;
 };
 export type MilvusStoreOptions = Partial<Options>;
