@@ -61,7 +61,7 @@ function MilvusStore(this: any, options: Options) {
         await loadCollection(client, {
           collection_name,
           collection: options.milvus.collection,
-        } )
+        })
 
         client.insert({
           collection_name,
@@ -118,6 +118,11 @@ function MilvusStore(this: any, options: Options) {
       // console.log('IN LOAD: ', collection_name, query)
       
       async function doLoad() {
+        await loadCollection(client, {
+          collection_name,
+          collection: options.milvus.collection,
+        })
+        
         let res = await client.get({
           collection_name,
           ids: [ q.id ],
@@ -145,7 +150,7 @@ function MilvusStore(this: any, options: Options) {
       const query = buildQuery({ options, msg })
 
 
-      const collection = makeCollectionName(ent.canon$({string: true}))
+      const collection_name = makeCollectionName(ent.canon$({string: true}))
 
       vector = q.vector
 
@@ -160,6 +165,12 @@ function MilvusStore(this: any, options: Options) {
       console.log('LIST QUERY: ', query)
 
       async function doList() {
+        // Load collection in memory
+        await loadCollection(client, {
+          collection_name,
+          collection: options.milvus.collection,
+        })
+        
         let res: any = await client.search(query)
         checkError(res)
         

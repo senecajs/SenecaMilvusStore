@@ -68,6 +68,10 @@ function MilvusStore(options) {
             let q = msg.q || {};
             // console.log('IN LOAD: ', collection_name, query)
             async function doLoad() {
+                await loadCollection(client, {
+                    collection_name,
+                    collection: options.milvus.collection,
+                });
                 let res = await client.get({
                     collection_name,
                     ids: [q.id],
@@ -87,7 +91,7 @@ function MilvusStore(options) {
             const q = msg.q || {};
             const ent = msg.ent;
             const query = buildQuery({ options, msg });
-            const collection = makeCollectionName(ent.canon$({ string: true }));
+            const collection_name = makeCollectionName(ent.canon$({ string: true }));
             vector = q.vector;
             query.vector = vector;
             // console.log('LISTQ')
@@ -97,6 +101,11 @@ function MilvusStore(options) {
             }
             console.log('LIST QUERY: ', query);
             async function doList() {
+                // Load collection in memory
+                await loadCollection(client, {
+                    collection_name,
+                    collection: options.milvus.collection,
+                });
                 let res = await client.search(query);
                 checkError(res);
                 let list = res.results.map((item) => ent.data$(item));
