@@ -14,19 +14,17 @@ function MilvusStore(options) {
         save: function (msg, reply) {
             // const seneca = this
             const ent = msg.ent;
-            const canon = ent.canon$({ object: true });
-            const collection = getCollection(ent, options);
+            const collection_name = makeCollectionName(ent.canon$({ string: true }));
             const body = ent.data$(false);
             // console.log('IN SAVE: ', collection, body)
             const fieldOpts = options.field;
             async function doSave() {
-                await createAndLoadCollection(client, {
-                    schema: options.milvus.schema,
+                await loadCollection(client, {
+                    collection_name,
                     collection: options.milvus.collection,
-                    collection_name: collection.name
                 });
                 client.insert({
-                    collection_name: collection.name,
+                    collection_name,
                     data: [body],
                 })
                     .then((res) => {
@@ -65,47 +63,31 @@ function MilvusStore(options) {
         load: function (msg, reply) {
             // const seneca = this
             const ent = msg.ent;
-            console.log("LOADDD");
-            // const canon = ent.canon$({ object: true })
-            const index = resolveIndex(ent, options);
+            let collection_name = makeCollectionName(ent.canon$({ string: true }));
+            let query = buildQuery({ options, msg });
             let q = msg.q || {};
-            reply({});
-            /*
-               if (null != q.id) {
-               client
-               .get({
-               index,
-               id: q.id,
-               })
-               .then((res: any) => {
-               const body = res.body
-               ent.data$(body._source)
-               ent.id = body._id
-               reply(ent)
-               })
-               .catch((err: any) => {
-            // Not found
-            if (err.meta && 404 === err.meta.statusCode) {
-            reply(null)
+            // console.log('IN LOAD: ', collection_name, query)
+            async function doLoad() {
+                let res = await client.get({
+                    collection_name,
+                    ids: [q.id],
+                    output_fields: query.output_fields,
+                });
+                checkError(res);
+                if (null == res.data[0]) {
+                    return reply(null);
+                }
+                reply(null, ent.data$(res.data[0]));
             }
-    
-            reply(err)
-            })
-    
-    
-            } else {
-            reply()
-            }
-             */
+            doLoad();
         },
         list: function (msg, reply) {
             // const seneca = this
             let vector;
             const q = msg.q || {};
             const ent = msg.ent;
-            const index = resolveIndex(ent, options);
-            const query = buildQuery({ index, options, msg });
-            const collection = getCollection(ent, options);
+            const query = buildQuery({ options, msg });
+            const collection = makeCollectionName(ent.canon$({ string: true }));
             vector = q.vector;
             query.vector = vector;
             // console.log('LISTQ')
@@ -116,41 +98,21 @@ function MilvusStore(options) {
             console.log('LIST QUERY: ', query);
             async function doList() {
                 let res = await client.search(query);
-                if (0 != res.status.code) {
-                    throw new Error(JSON.stringify(res.status));
-                }
+                checkError(res);
                 let list = res.results.map((item) => ent.data$(item));
                 reply(null, list);
             }
             doList();
-            /*
-               client
-               .search(query)
-               .then((res: any) => {
-               const hits = res.body.hits
-               const list = hits.hits.map((entry: any) => {
-               let item = ent.make$().data$(entry._source)
-               item.id = entry._id
-               item.custom$ = { score: entry._score }
-               return item
-               })
-               reply(list)
-               })
-               .catch((err: any) => {
-               reply(err)
-               })
-             */
         },
         // NOTE: all$:true is REQUIRED for deleteByQuery
         remove: function (msg, reply) {
             // const seneca = this
             const ent = msg.ent;
-            const index = resolveIndex(ent, options);
             const q = msg.q || {};
             let id = q.id;
             let query;
             if (null == id) {
-                query = buildQuery({ index, options, msg });
+                query = buildQuery({ options, msg });
                 if (null == query || true !== q.all$) {
                     return reply(null);
                 }
@@ -215,13 +177,25 @@ function MilvusStore(options) {
         const address = options.milvus.address;
         const token = options.milvus.token;
         client = new milvus2_sdk_node_1.MilvusClient({ address, token });
-        console.log(client.createIndex, options.milvus.index);
-        let out = await client.createIndex({
-            collection_name: 'foo_chunk',
-            field_name: 'vector',
-            ...options.milvus.index,
-        });
-        console.log(out);
+        // console.log('IN PREPARE: ', client.createIndex, options.milvus.index, options.map)
+        for (let canon in options.map) {
+            let res;
+            let collection_name = makeCollectionName(canon);
+            res = await client.createCollection({
+                collection_name,
+                fields: options.milvus.schema,
+                ...options.milvus.collection,
+            });
+            checkError(res);
+            // console.log('IN COLL: ', res)
+            res = await client.createIndex({
+                collection_name,
+                field_name: 'vector', // TODO: FEATURE TO INDEX OTHER FIELDS
+                ...options.milvus.index,
+            });
+            checkError(res);
+            // console.log('IN INDEX: ', res)
+        }
     });
     return {
         name: store.name,
@@ -233,27 +207,24 @@ function MilvusStore(options) {
         },
     };
 }
+function makeCollectionName(canon) {
+    let [zone, base, name] = canon.split('/');
+    zone = '-' == zone ? '' : zone;
+    base = '-' == base ? '' : base;
+    name = '-' == name ? '' : name;
+    return [zone, base, name].filter((v) => v != '').join('_');
+}
 function buildQuery(spec) {
     var _a;
-    const { index, options, msg } = spec;
+    const { options, msg } = spec;
     const q = msg.q || {};
     const fields = q.fields$ || [];
-    const collection = getCollection(msg.ent, options);
+    const collection_name = makeCollectionName(msg.ent.canon$({ string: true }));
     let query = {
-        collection_name: collection.name,
+        collection_name,
     };
     let index_config = options.milvus.index;
     let outputFields = [...options.milvus.schema.map((field) => field.name), ...fields];
-    const parts = [];
-    /*
-       for (let k in q) {
-       if (!excludeKeys[k] && !k.match(/\$/)) {
-       parts.push({
-       match: { [k]: q[k] },
-       })
-       }
-       }
-     */
     const vector$ = msg.vector$ || ((_a = q.directive$) === null || _a === void 0 ? void 0 : _a.vector$);
     if (vector$) {
         query['topk'] = null == vector$.k ? 11 : vector$.k;
@@ -265,57 +236,29 @@ function buildQuery(spec) {
     };
     return query;
 }
-function resolveIndex(ent, options) {
-    let indexOpts = options.index;
-    if ('' != indexOpts.exact && null != indexOpts.exact) {
-        return indexOpts.exact;
-    }
-    let canonstr = ent.canon$({ string: true });
-    indexOpts.map = indexOpts.map || {};
-    if ('' != indexOpts.map[canonstr] && null != indexOpts.map[canonstr]) {
-        return indexOpts.map[canonstr];
-    }
-    let prefix = indexOpts.prefix;
-    let suffix = indexOpts.suffix;
-    prefix = '' == prefix || null == prefix ? '' : prefix + '_';
-    suffix = '' == suffix || null == suffix ? '' : '_' + suffix;
-    // TOOD: need ent.canon$({ external: true }) : foo/bar -> foo_bar
-    let infix = ent
-        .canon$({ string: true })
-        .replace(/-\//g, '')
-        .replace(/\//g, '_');
-    return prefix + infix + suffix;
-}
-function getCollection(ent, options) {
-    let collection = {};
-    let canon = ent.canon$({ object: true });
-    collection.name = (null != canon.base ? canon.base + '_' : '') + canon.name;
-    return collection;
-}
-async function createAndLoadCollection(client, config) {
-    const collection = config.collection || {};
+async function loadCollection(client, config) {
     const collection_name = config.collection_name || '';
-    const schema = config.schema || [];
-    let coll;
-    coll = await client.createCollection({
-        collection_name,
-        fields: schema,
-        ...collection,
-    });
-    coll = await client.loadCollection({
+    const collection = config.collection || {};
+    let res;
+    res = await client.loadCollection({
         collection_name,
         ...collection,
     });
+    checkError(res);
+}
+function checkError(res) {
+    if (res.status ?
+        (null != res.status.code && 0 != res.status.code) :
+        (null != res.code && 0 != res.code)) {
+        throw new Error(JSON.stringify(res));
+    }
 }
 // Default options.
 const defaults = {
     debug: false,
     map: Any(),
     index: {
-        prefix: '',
-        suffix: '',
         map: {},
-        exact: '',
     },
     // '' === name => do not inject
     field: {
@@ -365,7 +308,7 @@ const defaults = {
 };
 Object.assign(MilvusStore, {
     defaults,
-    utils: { resolveIndex },
+    utils: {},
 });
 exports.default = MilvusStore;
 if ('undefined' !== typeof module) {

@@ -2,10 +2,7 @@ type Options = {
     debug: boolean;
     map?: any;
     index: {
-        prefix: string;
-        suffix: string;
         map: Record<string, string>;
-        exact: string;
     };
     field: {
         zone: {
