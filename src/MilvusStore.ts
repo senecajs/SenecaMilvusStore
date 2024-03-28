@@ -1,8 +1,10 @@
 /* Copyright (c) 2024 Seneca contributors, MIT License */
 
-import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws'
-import { Client } from '@opensearch-project/opensearch'
-import { defaultProvider } from '@aws-sdk/credential-provider-node'
+import {
+  MilvusClient,
+  DataType,
+  ConsistencyLevelEnum
+} from '@zilliz/milvus2-sdk-node'
 
 import { Gubu } from 'gubu'
 
@@ -29,22 +31,22 @@ type Options = {
     }
   }
   aws: any
-  opensearch: any
+  milvus: any
 }
 
-export type OpensearchStoreOptions = Partial<Options>
+export type MilvusStoreOptions = Partial<Options>
 
-function OpensearchStore(this: any, options: Options) {
+function MilvusStore(this: any, options: Options) {
   const seneca: any = this
 
   const init = seneca.export('entity/init')
 
-  let desc: any = 'OpensearchStore'
+  let desc: any = 'MilvusStore'
 
   let client: any
 
   let store = {
-    name: 'OpensearchStore',
+    name: 'MilvusStore',
 
     save: function (this: any, msg: any, reply: any) {
       // const seneca = this
@@ -223,20 +225,10 @@ function OpensearchStore(this: any, options: Options) {
   desc = meta.desc
 
   seneca.prepare(async function (this: any) {
-    const region = options.aws.region
-    const node = options.opensearch.node
+    const address = options.milvus.address
+    const token = options.milvus.token
 
-    client = new Client({
-      ...AwsSigv4Signer({
-        region,
-        service: 'aoss',
-        getCredentials: () => {
-          const credentialsProvider = defaultProvider()
-          return credentialsProvider()
-        },
-      }),
-      node,
-    })
+    client = new MilvusClient({ address, token })
   })
 
   return {
@@ -361,18 +353,19 @@ const defaults: Options = {
     region: 'us-east-1',
   }),
 
-  opensearch: Open({
-    node: 'NODE-URL',
+  milvus: Open({
+    address: 'NODE-URL',
+    token: 'TOKEN'
   }),
 }
 
-Object.assign(OpensearchStore, {
+Object.assign(MilvusStore, {
   defaults,
   utils: { resolveIndex },
 })
 
-export default OpensearchStore
+export default MilvusStore
 
 if ('undefined' !== typeof module) {
-  module.exports = OpensearchStore
+  module.exports = MilvusStore
 }

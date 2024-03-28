@@ -1,18 +1,16 @@
 "use strict";
 /* Copyright (c) 2024 Seneca contributors, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-const aws_1 = require("@opensearch-project/opensearch/aws");
-const opensearch_1 = require("@opensearch-project/opensearch");
-const credential_provider_node_1 = require("@aws-sdk/credential-provider-node");
+const milvus2_sdk_node_1 = require("@zilliz/milvus2-sdk-node");
 const gubu_1 = require("gubu");
 const { Open, Any } = gubu_1.Gubu;
-function OpensearchStore(options) {
+function MilvusStore(options) {
     const seneca = this;
     const init = seneca.export('entity/init');
-    let desc = 'OpensearchStore';
+    let desc = 'MilvusStore';
     let client;
     let store = {
-        name: 'OpensearchStore',
+        name: 'MilvusStore',
         save: function (msg, reply) {
             // const seneca = this
             const ent = msg.ent;
@@ -164,19 +162,9 @@ function OpensearchStore(options) {
     let meta = init(seneca, options, store);
     desc = meta.desc;
     seneca.prepare(async function () {
-        const region = options.aws.region;
-        const node = options.opensearch.node;
-        client = new opensearch_1.Client({
-            ...(0, aws_1.AwsSigv4Signer)({
-                region,
-                service: 'aoss',
-                getCredentials: () => {
-                    const credentialsProvider = (0, credential_provider_node_1.defaultProvider)();
-                    return credentialsProvider();
-                },
-            }),
-            node,
-        });
+        const address = options.milvus.address;
+        const token = options.milvus.token;
+        client = new milvus2_sdk_node_1.MilvusClient({ address, token });
     });
     return {
         name: store.name,
@@ -283,16 +271,17 @@ const defaults = {
     aws: Open({
         region: 'us-east-1',
     }),
-    opensearch: Open({
-        node: 'NODE-URL',
+    milvus: Open({
+        address: 'NODE-URL',
+        token: 'TOKEN'
     }),
 };
-Object.assign(OpensearchStore, {
+Object.assign(MilvusStore, {
     defaults,
     utils: { resolveIndex },
 });
-exports.default = OpensearchStore;
+exports.default = MilvusStore;
 if ('undefined' !== typeof module) {
-    module.exports = OpensearchStore;
+    module.exports = MilvusStore;
 }
-//# sourceMappingURL=OpensearchStore.js.map
+//# sourceMappingURL=MilvusStore.js.map
