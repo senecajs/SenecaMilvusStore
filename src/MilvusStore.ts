@@ -169,7 +169,7 @@ function MilvusStore(this: any, options: Options) {
           // console.dir(res, { depth: null })
           checkError(res, reply)
 
-          let list = res.results.map((item: any) => ent.make$().data$(item))
+          let list = res.results.map((item: any) => ent.make$(item))
           
           return reply(null, list)
         } else {

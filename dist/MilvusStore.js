@@ -102,7 +102,7 @@ function MilvusStore(options) {
                     console.log('LIST SEARCH: ', query);
                     // console.dir(res, { depth: null })
                     checkError(res, reply);
-                    let list = res.results.map((item) => ent.make$().data$(item));
+                    let list = res.results.map((item) => ent.make$(item));
                     return reply(null, list);
                 }
                 else {
