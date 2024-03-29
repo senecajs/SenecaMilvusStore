@@ -106,7 +106,7 @@ function MilvusStore(this: any, options: Options) {
       const ent = msg.ent
 
       let collection_name = makeCollectionName(ent.canon$({ string: true }))
-      let query = buildQuery({ options, msg })
+      let query = buildQuery({ seneca, options, msg })
 
       let q = msg.q || {}
 
@@ -141,7 +141,7 @@ function MilvusStore(this: any, options: Options) {
       const q = msg.q || {}
       const ent = msg.ent
 
-      const query = buildQuery({ options, msg })
+      const query = buildQuery({ seneca, options, msg })
 
 
       const collection_name = makeCollectionName(ent.canon$({string: true}))
@@ -150,6 +150,20 @@ function MilvusStore(this: any, options: Options) {
       if (null == query) {
         return reply([])
       }
+
+      
+      let cq = seneca.util.clean(q)
+      
+      if(vector) {
+        delete cq.vector
+      }
+      
+      let expr = Object.keys(cq).map(c => {
+        return build_cmps(cq[c], c).cmps.map(cmp => {
+          query.output_fields.push(cmp.k)
+          return cmp.k + cmp.cmpop + JSON.stringify(cmp.v)
+        }).join('and')
+      }).join('or')
 
 
 
@@ -162,26 +176,28 @@ function MilvusStore(this: any, options: Options) {
 
         if(vector) {
           query.vector = vector
+          query.filter = expr
 
           let res: any = await client.search(query)
 
-          console.log('LIST SEARCH: ', query)
+          console.log('LIST SEARCH: ', query, [ expr ])
           // console.dir(res, { depth: null })
           checkError(res, reply)
 
-          let list = res.results.map((item: any) => ent.make$(item))
+          let list = res.results.map((item: any) => {
+            let meta = item.$meta 
+            if(meta) {
+              for(let key in meta) {
+                item[key] = meta[key]
+              }
+              delete item.$meta
+            }
+            return ent.make$(item)
+          })
           
           return reply(null, list)
         } else {
-
-          let cq = seneca.util.clean(q)
-
-          let expr = Object.keys(cq).map(c => {
-            return build_cmps(cq[c], c).cmps.map(cmp => {
-              return cmp.k + cmp.cmpop + JSON.stringify(cmp.v)
-            }).join('and')
-          }).join('or')
-
+        
           let filter_query: any = {
             collection_name, 
             limit: 100,
@@ -189,12 +205,22 @@ function MilvusStore(this: any, options: Options) {
             output_fields: query.output_fields,
           }
 
-          console.log('EXPR: ', filter_query, [ expr, cq ])
+          // console.log('EXPR: ', filter_query, [ expr, cq ])
 
           let res = await client.query(filter_query)
 
           checkError(res, reply)
-          reply(res.data)
+          
+          reply(null, res.data.map((item: any) => {
+            let meta = item.$meta
+            if(meta) {
+              for(let key in meta) {
+                item[key] = meta[key]
+              }
+              delete item.$meta
+            }
+            return ent.make$(item)
+          }))
           // let res: any = {}
           // reply(res)
 
@@ -216,19 +242,51 @@ function MilvusStore(this: any, options: Options) {
 
       const q = msg.q || {}
       let id = q.id
-      let query
-
+      
+      let query = buildQuery({ seneca, options, msg })
+      
       if (null == id) {
-        query = buildQuery({ options, msg })
+      
+        // console.log('REMOVE: ', query)
 
         if (null == query || true !== q.all$) {
           return reply(null)
         }
       }
 
-      // console.log('REMOVE', id)
+      // console.log('REMOVE', q)
+      
+      async function doRemove() {
+      
+        if( null != id) {
+        
+          let res = await client.delete({
+            collection_name: query.collection_name,
+            ids: [ id ],
+          })
+          // console.log("DELETE: ", res, id)
+          
+          checkError(res, reply)
+          
+          return reply(null)
+          
+        } else if( true === q.all$) {
+        /*
+          let res = await client.deleteEntities({
+            collection_name: query.collection_name,
+            // expr: '', // needs a filter or expr
+          })
+          
+          checkError(res, reply)
+          
+          console.log('res: ', res)
+        */
+        }
 
-      reply(null)
+        reply(null)
+      }
+      
+      doRemove()
 
       /*
          if (null != id) {
@@ -358,15 +416,18 @@ function makeCollectionName(canon: String) {
   return str
 }
 
-function buildQuery(spec: { options: any; msg: any }) {
-  const { options, msg } = spec
+function buildQuery(spec: { seneca: any, options: any; msg: any }) {
+  const { seneca, options, msg } = spec
 
+  const ent = msg.ent
   const q = msg.q || {}
 
   const fields = q.fields$ || []
 
-  const collection_name = makeCollectionName(msg.ent.canon$({ string: true }))
+  const collection_name = makeCollectionName(ent.canon$({ string: true }))
 
+  // let cq = seneca.util.clean(q)
+  
   // no query params means no results
   if(0 === Object.keys(q).length) {
     return null

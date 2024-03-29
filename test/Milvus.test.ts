@@ -2,7 +2,7 @@
 
 require('dotenv').config({ path: '.env.local' })
 // console.log(process.env) // remove this
-
+// To turn off milvus-node logs, run: > export NODE_ENV='' && npm run test
 
 import Seneca from 'seneca'
 // import SenecaMsgTest from 'seneca-msg-test'
@@ -10,7 +10,6 @@ import Seneca from 'seneca'
 
 import MilvusStoreDoc from '../src/MilvusStoreDoc'
 import MilvusStore from '../src/MilvusStore'
-
 
 
 describe('MilvusStore', () => {
@@ -59,6 +58,7 @@ describe('MilvusStore', () => {
       await seneca.entity('foo/chunk')
         .make$()
         .data$({
+          test_n: 0,
           vector: [
             ii + 0.1,
             ii + 0.2,
@@ -75,6 +75,9 @@ describe('MilvusStore', () => {
     
     }
     
+    // TODO:
+    // await seneca.entity('foo/chunk').remove$({ test_n: 0, all$: true })
+    
     let list = await seneca.entity('foo/chunk')
       .list$({
         vector: [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8 ],
@@ -85,10 +88,19 @@ describe('MilvusStore', () => {
     
     expect(list.length).toEqual(knn)
     
+    list = await seneca.entity('foo/chunk').list$({ test_n: 0 })
+    
+    expect(list.length).toEqual(11)
+    
+    // CLEAR
+    for(let item of list) {
+      // console.log('ITEM: ', item)
+      await seneca.entity('foo/chunk').remove$({ id: item.id })
+    }
+    
   })
   
   test('insert-remove', async () => {
-  /*
     const seneca = await makeSeneca()
     await seneca.ready()
 
@@ -129,8 +141,7 @@ describe('MilvusStore', () => {
 
     const list2 = await seneca.entity('foo/chunk').list$({ test: 'insert-remove' })
     console.log('list2: ', list2)
-    expect(list2.filter((n: any) => n.id === ent0.id).length).toBeGreaterThan(0)
-    */
+    expect(list2).toEqual([])
     
   }, 22222)
 
@@ -146,7 +157,7 @@ describe('MilvusStore', () => {
     // NOT AVAILABLE ON AWS
     // await seneca.entity('foo/chunk').remove$({ all$: true, test: 'vector-cat' })
 
-    // const list1 = await seneca.entity('foo/chunk').list$({ test: 'vector-cat' })
+    const list1 = await seneca.entity('foo/chunk').list$({ test: 'vector-cat' })
     // console.log('list1', list1)
 
     /*
@@ -160,7 +171,9 @@ describe('MilvusStore', () => {
     // console.log('list1r', list1r)
     */
     
-    /*
+    console.log('find: ', list1, list1.find((n: any) => 'code0' === n.code), list1.find((n: any) => 'code1' === n.code) )
+    
+    
     if (!list1.find((n: any) => 'code0' === n.code)) {
       await seneca.entity('foo/chunk')
         .make$()
@@ -197,13 +210,12 @@ describe('MilvusStore', () => {
     expect(1 < list2.length).toEqual(true)
 
     const list3 = await seneca.entity('foo/chunk').list$({
-      directive$: { vector$: { k: 2 } },
+      directive$: { vector$: true }, // { k: 2 } },
       vector: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
       code: 'code0'
     })
-    // console.log('list3', list3.map((n: any) => ({ ...n })))
+    console.log('LIST3: ', list3)
     expect(list3.length).toEqual(1)
-    */
 
   }, 22222)
 
