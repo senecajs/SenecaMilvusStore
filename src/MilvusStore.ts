@@ -55,7 +55,7 @@ function MilvusStore(this: any, options: Options) {
       const body = ent.data$(false)
 
       const id = q.id || ent.id
-      
+
       // console.log('IN SAVE: ', collection, body)
 
       const fieldOpts: any = options.field
@@ -66,13 +66,13 @@ function MilvusStore(this: any, options: Options) {
           collection: options.milvus.collection,
         })
 
-	if(null == id) {
+        if(null == id) {
           let res = await client.insert({
             collection_name,
             data: [ body ],
           })
           checkError(res, reply)
-          
+
           let id = res.IDs.int_id.data[0]
           body.id = id
           reply(null, ent.data$(body))
@@ -80,25 +80,25 @@ function MilvusStore(this: any, options: Options) {
           // console.log("IN UPSERT", body)
           reply(new Error("UPSERT NOT SUPPORTED"), null)
           /*
-          client.upsert({
-            collection_name,
-            fields_data: [ body ],
-          })
-            .then( (res: any) => {
-              console.log(res)
-              reply(null, ent.data$(body))
-            })
-            .catch( (err: any) => {
-              reply(err, null)
-            })
-          */
+             client.upsert({
+             collection_name,
+             fields_data: [ body ],
+             })
+             .then( (res: any) => {
+             console.log(res)
+             reply(null, ent.data$(body))
+             })
+             .catch( (err: any) => {
+             reply(err, null)
+             })
+           */
 
         }
 
       }
 
       doSave()
-      
+
     },
 
     load: function (this: any, msg: any, reply: any) {
@@ -109,27 +109,27 @@ function MilvusStore(this: any, options: Options) {
       let query = buildQuery({ options, msg })
 
       let q = msg.q || {}
-      
+
       // console.log('IN LOAD: ', collection_name, query, options.milvus.collection)
-      
+
       async function doLoad() {
         await loadCollection(client, {
           collection_name,
           collection: options.milvus.collection,
         })
-        
+
         let res = await client.get({
           collection_name,
           ids: [ q.id ],
           output_fields: query.output_fields,
         })
-        
+
         checkError(res, reply)
-        
+
         if( null == res.data[0]) {
           return reply(null)
         }
-        
+
         reply(null, ent.data$(res.data[0]))
       }
 
@@ -138,7 +138,6 @@ function MilvusStore(this: any, options: Options) {
 
     list: function (msg: any, reply: any) {
       // const seneca = this
-      let vector: any
       const q = msg.q || {}
       const ent = msg.ent
 
@@ -146,14 +145,13 @@ function MilvusStore(this: any, options: Options) {
 
 
       const collection_name = makeCollectionName(ent.canon$({string: true}))
-
-      vector = q.vector
+      const vector = q.vector
 
       if (null == query) {
         return reply([])
       }
 
-      
+
 
       async function doList() {
         // Load collection in memory
@@ -161,52 +159,52 @@ function MilvusStore(this: any, options: Options) {
           collection_name,
           collection: options.milvus.collection,
         })
-        
+
         if(vector) {
           query.vector = vector
-          
+
           let res: any = await client.search(query)
-        
+
           console.log('LIST SEARCH: ', query, res)
           checkError(res, reply)
-        
+
           let list = res.results.map((item: any) => ent.data$(item))
           reply(null, list)
         } else {
-          
+
           let cq = seneca.util.clean(q)
-          
+
           let expr = Object.keys(cq).map(c => {
             return build_cmps(cq[c], c).cmps.map(cmp => {
               return cmp.k + cmp.cmpop + JSON.stringify(cmp.v)
             }).join('and')
           }).join('or')
-          
+
           let filter_query: any = {
             collection_name, 
             limit: 100,
             expr,
             output_fields: query.output_fields,
           }
-          
+
           console.log('EXPR: ', filter_query, [ expr, cq ])
-          
+
           let res = await client.query(filter_query)
-          
+
           checkError(res, reply)
           reply(res.data)
           // let res: any = {}
           // reply(res)
-          
+
           console.log("IN LIST QUERY: ", filter_query, q, res)
-          
+
           // reply(res.data)
         }
-        
+
       }
 
       doList()
-      
+
     },
 
     // NOTE: all$:true is REQUIRED for deleteByQuery
@@ -291,45 +289,45 @@ function MilvusStore(this: any, options: Options) {
   seneca.prepare(async function (this: any) {
     const address = options.milvus.address
     const token = options.milvus.token
-    
+
     console.log("IN PREPARE: ", address, token)
     client = new MilvusClient({ address, token })
-    
-    
+
+
 
     // console.log('IN PREPARE: ', client.createIndex, options.milvus.index, options.map)
-    
+
     for(let canon in options.map) {
       let res
-      
+
       let collection_name = makeCollectionName(canon)
-      
+
       let collection_exists = await client.hasCollection({ collection_name })
-      
+
       checkError(collection_exists)
       if(collection_exists.value) {
         continue
       }
-      
+
       res = await client.createCollection({
         collection_name,
         fields: options.milvus.schema,
         ...options.milvus.collection,
       })
       checkError(res)
-      
+
       // console.log('IN COLL: ', res)
-      
+
       res = await client.createIndex({
         collection_name,
         field_name: 'vector', // TODO: FEATURE TO INDEX OTHER FIELDS
         ...options.milvus.index,
       })
       checkError(res)
-      
+
       // console.log('IN INDEX: ', res)
     }
-    
+
 
 
   })
@@ -346,15 +344,15 @@ function MilvusStore(this: any, options: Options) {
 }
 
 function makeCollectionName(canon: String) {
- 
+
   let [ zone, base, name ] = canon.split('/')
-   
+
   zone = '-' == zone ? '' : zone
   base = '-' == base ? '' : base
   name = '-' == name ? '' : name
-  
+
   let str = [ zone, base, name ].filter((v: String)=>null!=v&&''!=v).join('_')
-  
+
   return str
 }
 
@@ -366,6 +364,11 @@ function buildQuery(spec: { options: any; msg: any }) {
   const fields = q.fields$ || []
 
   const collection_name = makeCollectionName(msg.ent.canon$({ string: true }))
+
+  // no query params means no results
+  if(0 === Object.keys(q).length) {
+    return null
+  }
 
   let query: any = {
     collection_name,
@@ -392,7 +395,7 @@ function buildQuery(spec: { options: any; msg: any }) {
 async function loadCollection(client: any, config: any) {
   const collection_name: any = config.collection_name || ''
   const collection: any = config.collection || {}
-  
+
 
   let res: any
 
@@ -400,50 +403,50 @@ async function loadCollection(client: any, config: any) {
     collection_name,
     ...collection,
   })
-  
+
   checkError(res)
 
 }
 
 function build_cmps(qv: any, kname: String) {
-      // console.log('QV: ', typeof qv, qv)
+  // console.log('QV: ', typeof qv, qv)
 
-      if ('object' != typeof qv) {
-        //  && !Array.isArray(qv)) {
-        return { cmps: [{ c: 'eq$', cmpop: '==', k: kname, v: qv }] }
-      }
+  if ('object' != typeof qv) {
+    //  && !Array.isArray(qv)) {
+    return { cmps: [{ c: 'eq$', cmpop: '==', k: kname, v: qv }] }
+  }
 
-      let cmpops: any = {
-          gt$: { cmpop: '>' },
-          gte$: { cmpop: '>=' },
-          lt$: { cmpop: '<' },
-          lte$: { cmpop: '<=' },
-          ne$: { cmpop: '!=' },
-          eq$: { cmpop: '==' },
-        },
-        cmps = []
+  let cmpops: any = {
+    gt$: { cmpop: '>' },
+    gte$: { cmpop: '>=' },
+    lt$: { cmpop: '<' },
+    lte$: { cmpop: '<=' },
+    ne$: { cmpop: '!=' },
+    eq$: { cmpop: '==' },
+  },
+  cmps = []
 
-      for (let k in qv) {
-        let cmp = cmpops[k]
-        if (cmp) {
-          cmp = { ...cmpops[k] }
-          cmp.k = kname
-          cmp.v = qv[k]
-          cmp.c = k
-          cmps.push(cmp)
-        } else if (k.endsWith('$')) {
-          throw new Error('Invalid Comparison ' + k)
-        }
-      }
-
-      return { cmps }
+  for (let k in qv) {
+    let cmp = cmpops[k]
+    if (cmp) {
+      cmp = { ...cmpops[k] }
+      cmp.k = kname
+      cmp.v = qv[k]
+      cmp.c = k
+      cmps.push(cmp)
+    } else if (k.endsWith('$')) {
+      throw new Error('Invalid Comparison ' + k)
     }
-    
+  }
+
+  return { cmps }
+}
+
 function checkError(res: any, reply: any = null) {
   if(res.status ? 
-    (null != res.status.code && 0 != res.status.code) : 
-    (null != res.code && 0 != res.code)) {
-    
+     (null != res.status.code && 0 != res.status.code) : 
+       (null != res.code && 0 != res.code)) {
+
     if(null == reply) { 
       throw new Error(JSON.stringify(res))
     } else {

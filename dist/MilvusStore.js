@@ -39,18 +39,18 @@ function MilvusStore(options) {
                     // console.log("IN UPSERT", body)
                     reply(new Error("UPSERT NOT SUPPORTED"), null);
                     /*
-                    client.upsert({
-                      collection_name,
-                      fields_data: [ body ],
-                    })
-                      .then( (res: any) => {
-                        console.log(res)
-                        reply(null, ent.data$(body))
-                      })
-                      .catch( (err: any) => {
-                        reply(err, null)
-                      })
-                    */
+                       client.upsert({
+                       collection_name,
+                       fields_data: [ body ],
+                       })
+                       .then( (res: any) => {
+                       console.log(res)
+                       reply(null, ent.data$(body))
+                       })
+                       .catch( (err: any) => {
+                       reply(err, null)
+                       })
+                     */
                 }
             }
             doSave();
@@ -82,12 +82,11 @@ function MilvusStore(options) {
         },
         list: function (msg, reply) {
             // const seneca = this
-            let vector;
             const q = msg.q || {};
             const ent = msg.ent;
             const query = buildQuery({ options, msg });
             const collection_name = makeCollectionName(ent.canon$({ string: true }));
-            vector = q.vector;
+            const vector = q.vector;
             if (null == query) {
                 return reply([]);
             }
@@ -252,6 +251,10 @@ function buildQuery(spec) {
     const q = msg.q || {};
     const fields = q.fields$ || [];
     const collection_name = makeCollectionName(msg.ent.canon$({ string: true }));
+    // no query params means no results
+    if (0 === Object.keys(q).length) {
+        return null;
+    }
     let query = {
         collection_name,
     };
