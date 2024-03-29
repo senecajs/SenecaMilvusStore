@@ -54,7 +54,7 @@ describe('MilvusStore', () => {
 
     // no query params means no results
     const list0 = await seneca.entity('foo/chunk').list$()
-    expect(0 === list0.length)
+    expect(0 === list0.length).toBeTruthy()
 
     const list1 = await seneca.entity('foo/chunk').list$({ test: 'insert-remove' })
     // console.log(list1)

@@ -36,6 +36,7 @@ async function run() {
     .save$()
   console.log('save0', save0)
 
+  /*
 
   const list0 = await seneca.entity('foo/chunk').list$({
     directive$:{vector$:true},
@@ -49,6 +50,7 @@ async function run() {
     fields$: ['x', 'text'],
   })
   console.log('list1', list1.length)
+  */
   // console.log(list1)
 
   const id = '448691898059868766'

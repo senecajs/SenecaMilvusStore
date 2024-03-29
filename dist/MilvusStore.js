@@ -26,18 +26,14 @@ function MilvusStore(options) {
                     collection: options.milvus.collection,
                 });
                 if (null == id) {
-                    client.insert({
+                    let res = await client.insert({
                         collection_name,
                         data: [body],
-                    })
-                        .then((res) => {
-                        let id = res.IDs.int_id.data[0];
-                        body.id = id;
-                        reply(null, ent.data$(body));
-                    })
-                        .catch((err) => {
-                        reply(err, null);
                     });
+                    checkError(res, reply);
+                    let id = res.IDs.int_id.data[0];
+                    body.id = id;
+                    reply(null, ent.data$(body));
                 }
                 else {
                     // console.log("IN UPSERT", body)
@@ -65,7 +61,7 @@ function MilvusStore(options) {
             let collection_name = makeCollectionName(ent.canon$({ string: true }));
             let query = buildQuery({ options, msg });
             let q = msg.q || {};
-            // console.log('IN LOAD: ', collection_name, query)
+            // console.log('IN LOAD: ', collection_name, query, options.milvus.collection)
             async function doLoad() {
                 await loadCollection(client, {
                     collection_name,
@@ -119,11 +115,11 @@ function MilvusStore(options) {
                     let filter_query = {
                         collection_name,
                         limit: 100,
+                        expr,
                         output_fields: query.output_fields,
                     };
                     console.log('EXPR: ', filter_query, [expr, cq]);
-                    let res = await client.query(filter_query); // .then(console.log)
-                    // .catch(console.log)
+                    let res = await client.query(filter_query);
                     checkError(res, reply);
                     reply(res.data);
                     // let res: any = {}

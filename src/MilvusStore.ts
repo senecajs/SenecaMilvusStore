@@ -67,18 +67,15 @@ function MilvusStore(this: any, options: Options) {
         })
 
 	if(null == id) {
-          client.insert({
+          let res = await client.insert({
             collection_name,
             data: [ body ],
           })
-            .then( (res: any) => {
-              let id = res.IDs.int_id.data[0]
-              body.id = id
-              reply(null, ent.data$(body))
-            })
-            .catch( (err: any) => {
-              reply(err, null)
-            })
+          checkError(res, reply)
+          
+          let id = res.IDs.int_id.data[0]
+          body.id = id
+          reply(null, ent.data$(body))
         } else {
           // console.log("IN UPSERT", body)
           reply(new Error("UPSERT NOT SUPPORTED"), null)
@@ -113,7 +110,7 @@ function MilvusStore(this: any, options: Options) {
 
       let q = msg.q || {}
       
-      // console.log('IN LOAD: ', collection_name, query)
+      // console.log('IN LOAD: ', collection_name, query, options.milvus.collection)
       
       async function doLoad() {
         await loadCollection(client, {
@@ -188,13 +185,14 @@ function MilvusStore(this: any, options: Options) {
           let filter_query: any = {
             collection_name, 
             limit: 100,
+            expr,
             output_fields: query.output_fields,
           }
           
           console.log('EXPR: ', filter_query, [ expr, cq ])
           
-          let res = await client.query(filter_query)// .then(console.log)
-          // .catch(console.log)
+          let res = await client.query(filter_query)
+          
           checkError(res, reply)
           reply(res.data)
           // let res: any = {}
