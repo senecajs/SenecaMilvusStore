@@ -33,7 +33,7 @@ function MilvusStore(options) {
                     checkError(res, reply);
                     let id = res.IDs.int_id.data[0];
                     body.id = id;
-                    reply(null, ent.data$(body));
+                    reply(null, ent.make$(body));
                 }
                 else {
                     // console.log("IN UPSERT", body)
@@ -45,7 +45,7 @@ function MilvusStore(options) {
                        })
                        .then( (res: any) => {
                        console.log(res)
-                       reply(null, ent.data$(body))
+                       reply(null, ent.make$().data$(body))
                        })
                        .catch( (err: any) => {
                        reply(err, null)
@@ -76,7 +76,7 @@ function MilvusStore(options) {
                 if (null == res.data[0]) {
                     return reply(null);
                 }
-                reply(null, ent.data$(res.data[0]));
+                reply(null, ent.make$(res.data[0]));
             }
             doLoad();
         },
@@ -99,10 +99,11 @@ function MilvusStore(options) {
                 if (vector) {
                     query.vector = vector;
                     let res = await client.search(query);
-                    console.log('LIST SEARCH: ', query, res);
+                    console.log('LIST SEARCH: ', query);
+                    // console.dir(res, { depth: null })
                     checkError(res, reply);
-                    let list = res.results.map((item) => ent.data$(item));
-                    reply(null, list);
+                    let list = res.results.map((item) => ent.make$().data$(item));
+                    return reply(null, list);
                 }
                 else {
                     let cq = seneca.util.clean(q);

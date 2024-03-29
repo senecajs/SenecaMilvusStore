@@ -75,7 +75,7 @@ function MilvusStore(this: any, options: Options) {
 
           let id = res.IDs.int_id.data[0]
           body.id = id
-          reply(null, ent.data$(body))
+          reply(null, ent.make$(body))
         } else {
           // console.log("IN UPSERT", body)
           reply(new Error("UPSERT NOT SUPPORTED"), null)
@@ -86,7 +86,7 @@ function MilvusStore(this: any, options: Options) {
              })
              .then( (res: any) => {
              console.log(res)
-             reply(null, ent.data$(body))
+             reply(null, ent.make$().data$(body))
              })
              .catch( (err: any) => {
              reply(err, null)
@@ -130,7 +130,7 @@ function MilvusStore(this: any, options: Options) {
           return reply(null)
         }
 
-        reply(null, ent.data$(res.data[0]))
+        reply(null, ent.make$(res.data[0]))
       }
 
       doLoad()
@@ -165,11 +165,13 @@ function MilvusStore(this: any, options: Options) {
 
           let res: any = await client.search(query)
 
-          console.log('LIST SEARCH: ', query, res)
+          console.log('LIST SEARCH: ', query)
+          // console.dir(res, { depth: null })
           checkError(res, reply)
 
-          let list = res.results.map((item: any) => ent.data$(item))
-          reply(null, list)
+          let list = res.results.map((item: any) => ent.make$().data$(item))
+          
+          return reply(null, list)
         } else {
 
           let cq = seneca.util.clean(q)

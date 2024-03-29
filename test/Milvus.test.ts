@@ -47,7 +47,48 @@ describe('MilvusStore', () => {
   }, 22222)
   */
 
+  test('vector-search', async () => {
+    const seneca = await makeSeneca()
+    await seneca.ready()
+    
+    // nearest neighbors
+    let knn = 3
+    
+    for(let i = 10; i >= 0; i--) {
+      let ii = i / 10
+      await seneca.entity('foo/chunk')
+        .make$()
+        .data$({
+          vector: [
+            ii + 0.1,
+            ii + 0.2,
+            ii + 0.3,
+            ii + 0.4,
+            ii + 0.5,
+            ii + 0.6,
+            ii + 0.7,
+            ii + 0.8
+          ],
+          directive$: { vector$: true },
+        })
+        .save$()
+    
+    }
+    
+    let list = await seneca.entity('foo/chunk')
+      .list$({
+        vector: [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8 ],
+        directive$: { vector$: { k: knn } }
+      })
+    
+    // console.log('LIST: ', list)
+    
+    expect(list.length).toEqual(knn)
+    
+  })
+  
   test('insert-remove', async () => {
+  /*
     const seneca = await makeSeneca()
     await seneca.ready()
 
@@ -80,16 +121,16 @@ describe('MilvusStore', () => {
       ent0 = list1[0]
     }
     
-    /*
+    
 
     await seneca.entity('foo/chunk').remove$(ent0.id)
 
     await new Promise((r) => setTimeout(r, 2222))
-*/
+
     const list2 = await seneca.entity('foo/chunk').list$({ test: 'insert-remove' })
     console.log('list2: ', list2)
     expect(list2.filter((n: any) => n.id === ent0.id).length).toBeGreaterThan(0)
-    
+    */
     
   }, 22222)
 

@@ -53,7 +53,7 @@ async function run() {
   */
   // console.log(list1)
 
-  const id = '448691898059868766'
+  const id = '448714860955435764' // 448714860955435778
 
   /*
   // upsert basically
