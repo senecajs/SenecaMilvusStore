@@ -303,9 +303,10 @@ function MilvusStore(this: any, options: Options) {
 
       // console.log('IN COLL: ', res)
 
+      // TODO: FEATURE TO INDEX OTHER FIELDS
       res = await client.createIndex({
         collection_name,
-        field_name: 'vector', // TODO: FEATURE TO INDEX OTHER FIELDS
+        field_name: 'vector',
         ...options.milvus.index,
       })
       checkError(res)
