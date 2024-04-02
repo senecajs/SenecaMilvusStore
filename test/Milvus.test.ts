@@ -95,10 +95,13 @@ describe('MilvusStore', () => {
     // CLEAR
     for(let item of list) {
       // console.log('ITEM: ', item)
-      await seneca.entity('foo/chunk').remove$({ id: item.id })
+      let load_chunk = await seneca.entity('foo/chunk').load$(item.id)
+      expect(load_chunk.id).toEqual(item.id)
+      let r_chunk = await seneca.entity('foo/chunk').remove$({ id: item.id })
+      expect(r_chunk).toBeNull()
     }
     
-  })
+  }, 22222)
   
   test('insert-remove', async () => {
     const seneca = await makeSeneca()
