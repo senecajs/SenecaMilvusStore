@@ -174,9 +174,6 @@ describe('MilvusStore', () => {
     // console.log('list1r', list1r)
     */
     
-    console.log('find: ', list1, list1.find((n: any) => 'code0' === n.code), list1.find((n: any) => 'code1' === n.code) )
-    
-    
     if (!list1.find((n: any) => 'code0' === n.code)) {
       await seneca.entity('foo/chunk')
         .make$()
