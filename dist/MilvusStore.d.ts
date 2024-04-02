@@ -3,6 +3,7 @@ type Options = {
     map?: any;
     index: {
         map: Record<string, string>;
+        exact: string;
     };
     field: {
         zone: {

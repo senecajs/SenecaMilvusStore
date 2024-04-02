@@ -15,6 +15,7 @@ type Options = {
   map?: any
   index: {
     map: Record<string, string>
+    exact: string
   }
   field: {
     zone: { name: string }
@@ -492,6 +493,7 @@ const defaults: Options = {
   map: Any(),
   index: {
     map: {},
+    exact: '',
   },
 
   // '' === name => do not inject

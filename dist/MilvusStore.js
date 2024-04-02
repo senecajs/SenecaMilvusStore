@@ -348,6 +348,7 @@ const defaults = {
     map: Any(),
     index: {
         map: {},
+        exact: '',
     },
     // '' === name => do not inject
     field: {
