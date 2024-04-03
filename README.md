@@ -1,11 +1,11 @@
 ![Seneca](http://senecajs.org/files/assets/seneca-logo.png)
 > A [Seneca.js][] data storage plugin.
 
-# SenecaOpensearchStore
+# SenecaMilvusStore
 [![npm version][npm-badge]][npm-url]
-[![Build](https://github.com/senecajs/SenecaOpensearchStore/actions/workflows/build.yml/badge.svg)](https://github.com/senecajs/seneca-OpensearchStore/actions/workflows/build.yml)
+[![Build](https://github.com/senecajs/SenecaMilvusStore/actions/workflows/build.yml/badge.svg)](https://github.com/senecajs/seneca-MilvusStore/actions/workflows/build.yml)
 [![Dependency Status][david-badge]][david-url]
-[![Maintainability](https://api.codeclimate.com/v1/badges/e2cdcc5415161cb378b0/maintainability)](https://codeclimate.com/github/senecajs/SenecaOpensearchStore/maintainability)
+[![Maintainability](https://api.codeclimate.com/v1/badges/e2cdcc5415161cb378b0/maintainability)](https://codeclimate.com/github/senecajs/SenecaMilvusStore/maintainability)
 [![DeepScan grade](https://deepscan.io/api/teams/5016/projects/17225/branches/388415/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=5016&pid=17225&bid=388415)
 [![Coveralls][BadgeCoveralls]][Coveralls]
 
@@ -41,7 +41,7 @@ tutorials to sample apps to help get you up and running quickly.
 
 ## Code examples
 
-For code samples, please see the [tests][OpensearchStore-tests] for this plugin.
+For code samples, please see the [tests][MilvusStore-tests] for this plugin.
 
 ### Seneca compatibility
 Supports Seneca versions **2.x** and above
@@ -54,7 +54,7 @@ All Seneca data store supported functionality is implemented in [seneca-store-te
 
 ```sh
 npm install seneca
-npm install SenecaOpensearchStore
+npm install SenecaMilvusStore
 ```
 
 You'll need the [seneca](http://github.com/senecajs/seneca) toolkit to use this module - it's just a plugin.
@@ -67,7 +67,7 @@ var seneca = require('seneca')()
 seneca.use('basic')
 .use('entity')
 
-// Since OpensearchStore is a default plugin, it does not need to be
+// Since MilvusStore is a default plugin, it does not need to be
 // added with .use(). You can just go ahead and use it.
 seneca.ready(function () {
   var apple = seneca.make$('fruit')
@@ -131,22 +131,22 @@ Copyright (c) 2010-2014, Richard Rodger.
 Licensed under [MIT][].
 
 [MIT]: ./LICENSE
-[npm-badge]: https://badge.fury.io/js/SenecaOpensearchStore.svg
-[npm-url]: https://badge.fury.io/js/SenecaOpensearchStore
+[npm-badge]: https://badge.fury.io/js/SenecaMilvusStore.svg
+[npm-url]: https://badge.fury.io/js/SenecaMilvusStore
 [Senecajs org]: https://github.com/senecajs/
 [Seneca.js]: https://www.npmjs.com/package/seneca
 [@senecajs]: http://twitter.com/senecajs
 [senecajs.org]: http://senecajs.org/
-[travis-badge]: https://travis-ci.org/senecajs/SenecaOpensearchStore.svg
-[travis-url]: https://travis-ci.org/senecajs/SenecaOpensearchStore
+[travis-badge]: https://travis-ci.org/senecajs/SenecaMilvusStore.svg
+[travis-url]: https://travis-ci.org/senecajs/SenecaMilvusStore
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-url]: https://gitter.im/senecajs/seneca
-[github issue]: https://github.com/senecajs/SenecaOpensearchStore/issues
+[github issue]: https://github.com/senecajs/SenecaMilvusStore/issues
 [ActiveRecord-style data storage API]:http://senecajs.org/tutorials/understanding-data-entities.html
-[david-badge]: https://david-dm.org/senecajs/SenecaOpensearchStore.svg
-[david-url]: https://david-dm.org/senecajs/SenecaOpensearchStore
-[Coveralls]: https://coveralls.io/github/senecajs/SenecaOpensearchStore?branch=master
-[BadgeCoveralls]: https://coveralls.io/repos/github/senecajs/SenecaOpensearchStore/badge.svg?branch=master
+[david-badge]: https://david-dm.org/senecajs/SenecaMilvusStore.svg
+[david-url]: https://david-dm.org/senecajs/SenecaMilvusStore
+[Coveralls]: https://coveralls.io/github/senecajs/SenecaMilvusStore?branch=master
+[BadgeCoveralls]: https://coveralls.io/repos/github/senecajs/SenecaMilvusStore/badge.svg?branch=master
 [seneca-basic-url]: https://github.com/senecajs/seneca-basic
 [seneca-entity-url]: https://github.com/senecajs/seneca-entity
-[OpensearchStore-tests]: https://github.com/senecajs/SenecaOpensearchStore/tree/master/test
+[MilvusStore-tests]: https://github.com/senecajs/SenecaMilvusStore/tree/master/test
