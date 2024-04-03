@@ -2,8 +2,6 @@ type Options = {
     debug: boolean;
     map?: any;
     index: {
-        prefix: string;
-        suffix: string;
         map: Record<string, string>;
         exact: string;
     };
@@ -26,11 +24,10 @@ type Options = {
             size: number;
         };
     };
-    aws: any;
-    opensearch: any;
+    milvus: any;
 };
-export type OpensearchStoreOptions = Partial<Options>;
-declare function OpensearchStore(this: any, options: Options): {
+export type MilvusStoreOptions = Partial<Options>;
+declare function MilvusStore(this: any, options: Options): {
     name: string;
     tag: any;
     exportmap: {
@@ -39,4 +36,4 @@ declare function OpensearchStore(this: any, options: Options): {
         };
     };
 };
-export default OpensearchStore;
+export default MilvusStore;
